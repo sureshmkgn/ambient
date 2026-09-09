@@ -1,0 +1,13 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE configuration
+.vscode/
+.idea/
+
+# Istio downloaded releases and binaries
+istio-*/
+kind/istio-*/
+bin/
+.DS_Store

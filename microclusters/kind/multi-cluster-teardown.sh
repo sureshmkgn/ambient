@@ -1,10 +1,16 @@
-echo "Deleting ambient-cluster1..."
-kind delete cluster --name ambient-cluster1
+#!/usr/bin/env bash
+set -eo pipefail
 
-echo "Deleting ambient-cluster2..."
-kind delete cluster --name ambient-cluster2
+echo "=================================================="
+echo "🧹 Tearing down Kind Clusters"
+echo "=================================================="
 
-echo "Kind clusters cleanup complete."
+echo "➡️  Deleting cluster: ambient-cluster1..."
+kind delete cluster --name ambient-cluster1 || true
 
-echo "Deleting mgmt-cluster..."
-kind delete cluster --name mgmt-cluster
+echo "➡️  Deleting cluster: ambient-cluster2..."
+kind delete cluster --name ambient-cluster2 || true
+
+echo "=================================================="
+echo "✅ Teardown complete."
+echo "=================================================="

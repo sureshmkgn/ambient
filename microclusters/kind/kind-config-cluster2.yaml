@@ -1,6 +1,6 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-name: ambient-cluster1
+name: ambient-cluster2
 nodes:
 - role: control-plane
   extraPortMappings:
@@ -9,6 +9,5 @@ nodes:
     protocol: TCP
 - role: worker
 networking:
-  # the default CNI will not be installed
-  disableDefaultCNI: true
-  podSubnet: 192.168.0.0/16 # set to Calico's default subnet
+  podSubnet: "10.245.0.0/16"
+  serviceSubnet: "10.97.0.0/16"

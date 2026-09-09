@@ -4,3 +4,4 @@ metadata:
   name: ambient-demo
   labels:
     name: ambient-demo
+    istio.io/dataplane-mode: ambient
