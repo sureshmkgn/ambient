@@ -1,6 +1,22 @@
 # Multi-Cluster Kind with Istio Ambient Service Mesh
 
-A production-ready lab environment running multiple Kubernetes ([Kind](https://kind.sigs.k8s.io/)) clusters connected with **Istio Ambient Service Mesh**, **MetalLB** load balancing, and verified **cross-cluster application traffic**.
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Kind-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Istio Ambient](https://img.shields.io/badge/Istio-Ambient%20Mesh-466BB0?style=flat-square&logo=istio&logoColor=white)](https://istio.io/latest/docs/ambient/)
+[![MetalLB](https://img.shields.io/badge/LoadBalancer-MetalLB-009688?style=flat-square)](https://metallb.universe.tf/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+
+> **Automated, sidecarless multi-cluster service mesh laboratory powered by Kubernetes (Kind), Istio Ambient mode, MetalLB, and cross-cluster L4/L7 service routing.**
+
+---
+
+## 📖 Overview
+
+This repository provides a fully automated, reproducible environment to stand up **multi-cluster Kubernetes environments locally** using [Kind](https://kind.sigs.k8s.io/) and configure **Istio Ambient Service Mesh** across clusters. 
+
+### Why Ambient Mesh?
+Traditional service meshes require injecting an Envoy sidecar proxy into every application pod, introducing memory overhead, CPU consumption, and lifecycle management complexities. **Istio Ambient Mesh** splits the data plane into two distinct layers:
+1. **Secure L4 Overlay Layer (`ztunnel`)**: Runs as a lightweight node daemonset to handle mTLS encryption, authentication, and telemetry transparently without sidecars.
+2. **Optional L7 Processing Layer (`waypoint proxies` & `ingress gateways`)**: Deployed only when advanced traffic routing, security policies, or header transformations are needed.
 
 ---
 
@@ -9,7 +25,7 @@ A production-ready lab environment running multiple Kubernetes ([Kind](https://k
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                   Docker Bridge Network                                     │
-│                                   (e.g., 172.18.0.0/16)                                     │
+│                                   (e.g., 172.19.0.0/16)                                     │
 ├──────────────────────────────────────────────┬──────────────────────────────────────────────┤
 │            kind-ambient-cluster1             │            kind-ambient-cluster2             │
 │                                              │                                              │
@@ -17,7 +33,7 @@ A production-ready lab environment running multiple Kubernetes ([Kind](https://k
 │  • Node: worker                              │  • Node: worker                              │
 │  • Pod Subnet:     10.244.0.0/16             │  • Pod Subnet:     10.245.0.0/16             │
 │  • Service Subnet: 10.96.0.0/16              │  • Service Subnet: 10.97.0.0/16              │
-│  • MetalLB Pool:   172.18.255.200 - 220      │  • MetalLB Pool:   172.18.255.230 - 250      │
+│  • MetalLB Pool:   172.19.255.200 - 220      │  • MetalLB Pool:   172.19.255.230 - 250      │
 │                                              │                                              │
 │  • Istio Ambient Stack:                      │  • Istio Ambient Stack:                      │
 │    ├── istiod (Control Plane)                │    ├── istiod (Control Plane)                │
@@ -34,7 +50,7 @@ A production-ready lab environment running multiple Kubernetes ([Kind](https://k
 │                                              │                                   │          │
 │            ┌─────────────────────────────────┴───────────────────────────────────┘          │
 │            ▼                                                                                │
-│     [ Ingress Gateway (LB: 172.18.255.200) ]                                                │
+│     [ Ingress Gateway (LB: 172.19.255.200) ]                                                │
 │            │                                                                                │
 │     [ ztunnel mTLS / HBONE ]                                                                │
 │            │                                                                                │
@@ -44,29 +60,40 @@ A production-ready lab environment running multiple Kubernetes ([Kind](https://k
 
 ---
 
+## ✨ Features
+
+- 🚀 **1-Command Full Stack Provisioning**: Brings up Kind clusters, MetalLB, Istio Ambient mesh, and sample workloads with a single script (`./setup-all.sh`).
+- ⚡ **Sidecarless Data Plane**: Employs Istio's ambient architecture with `ztunnel` and `istio-cni` for zero-pod-modification mTLS and telemetry.
+- 🌐 **Dynamic MetalLB IP Allocation**: Automatically discovers Docker bridge subnets and creates isolated `IPAddressPool`s for each cluster.
+- 🧪 **Automated Cross-Cluster Verification**: Includes test suite (`./verify-cross-cluster.sh`) testing cross-cluster communication from Cluster 2 to `httpbin` on Cluster 1.
+- 🧹 **Clean Teardown**: Fast cleanup script (`./teardown-all.sh`) ensuring no leftover Docker containers or bridge networks.
+
+---
+
 ## 📁 Repository Structure
 
 ```
-microclusters/
-├── README.md                           # This documentation
-├── setup-all.sh                        # One-shot master automated deployment script
-├── teardown-all.sh                     # Cleanup and tear down all clusters
-├── verify-cross-cluster.sh             # Cross-cluster traffic & mesh validation script
-├── kind/
-│   ├── kind-config-cluster1.yaml       # Cluster 1 Kind topology (CIDR: 10.244.0.0/16)
-│   ├── kind-config-cluster2.yaml       # Cluster 2 Kind topology (CIDR: 10.245.0.0/16)
-│   ├── multi-cluster-setup.sh          # Provisions both Kind clusters
-│   ├── multi-cluster-teardown.sh       # Deletes Kind clusters
-│   └── istio-1.22.0/                   # Istio distribution & local istioctl binary
-├── Loadbalancer/
-│   └── metallb.sh                      # MetalLB installation & dynamic IP pool configuration
-├── mesh/
-│   └── mesh-setup.sh                   # Istio Ambient mesh installation (ambient profile)
-└── workload/
-    ├── ns.yaml                         # ambient-demo namespace with ambient dataplane label
-    ├── httpbin.yaml                    # httpbin Deployment & Service for cluster1
-    ├── istio-ingress.yaml              # Istio Gateway & VirtualService routing to httpbin
-    └── client-cluster2.yaml            # Client pod (curl/sleep) deployed in cluster2
+.
+├── README.md                           # Project documentation
+├── microclusters/
+│   ├── README.md                       # Microclusters guide
+│   ├── setup-all.sh                    # Master deployment script
+│   ├── teardown-all.sh                 # Cluster teardown script
+│   ├── verify-cross-cluster.sh         # End-to-end verification script
+│   ├── kind/
+│   │   ├── kind-config-cluster1.yaml   # Topology for cluster1 (CIDR: 10.244.0.0/16)
+│   │   ├── kind-config-cluster2.yaml   # Topology for cluster2 (CIDR: 10.245.0.0/16)
+│   │   ├── multi-cluster-setup.sh      # Provisions both Kind clusters
+│   │   └── multi-cluster-teardown.sh   # Tears down Kind clusters
+│   ├── Loadbalancer/
+│   │   └── metallb.sh                  # MetalLB deployment & pool config
+│   ├── mesh/
+│   │   └── mesh-setup.sh               # Istio Ambient mesh installer
+│   └── workload/
+│       ├── ns.yaml                     # ambient-demo namespace definition
+│       ├── httpbin.yaml                # Target httpbin application
+│       ├── istio-ingress.yaml          # Gateway and VirtualService
+│       └── client-cluster2.yaml        # Curl/sleep client on cluster2
 ```
 
 ---
@@ -74,71 +101,41 @@ microclusters/
 ## ⚡ Quick Start
 
 ### Prerequisites
-
-Ensure the following tools are installed on your host machine:
-- [Docker](https://docs.docker.com/get-docker/) (running with at least 4GB RAM)
+- [Docker](https://docs.docker.com/get-docker/) (running with at least 4GB RAM allocated)
 - [Kind](https://kind.sigs.k8s.io/) (`brew install kind`)
 - [Kubectl](https://kubernetes.io/docs/tasks/tools/) (`brew install kubectl`)
 
-### 1-Step Complete Provisioning
-
-Run the master setup script:
+### Run All-In-One Setup
 
 ```bash
+cd microclusters
 ./setup-all.sh
 ```
 
-This will automatically:
-1. Spin up `ambient-cluster1` and `ambient-cluster2`.
-2. Install MetalLB on both clusters with dedicated IP pools matching your Docker bridge.
-3. Install the Istio Ambient data plane (`istiod`, `ztunnel`, `istio-cni`, and `istio-ingressgateway`).
-4. Label namespaces with `istio.io/dataplane-mode=ambient`.
-5. Deploy `httpbin` on `ambient-cluster1` and the test client on `ambient-cluster2`.
-6. Run the cross-cluster verification test suite.
+The script will automatically provision clusters, configure MetalLB, install Istio Ambient mode, deploy workloads, and run cross-cluster verification.
 
 ---
 
 ## 🔍 Step-by-Step Manual Execution
 
-If you prefer to execute the steps individually:
-
-### Step 1: Create Kind Clusters
 ```bash
+cd microclusters
+
+# Step 1: Create Kind Clusters
 ./kind/multi-cluster-setup.sh
-```
-Verifies node readiness on contexts `kind-ambient-cluster1` and `kind-ambient-cluster2`.
 
-### Step 2: Configure MetalLB Load Balancers
-```bash
+# Step 2: Configure MetalLB Load Balancers
 ./Loadbalancer/metallb.sh
-```
-Discovers the Kind network subnet dynamically and allocates:
-- `ambient-cluster1`: `x.x.255.200 - x.x.255.220`
-- `ambient-cluster2`: `x.x.255.230 - x.x.255.250`
 
-### Step 3: Install Istio Ambient Mesh
-```bash
+# Step 3: Install Istio Ambient Mesh
 ./mesh/mesh-setup.sh
-```
-Installs:
-- Gateway API CRDs
-- Istio control plane (`istiod`)
-- Istio node components: `ztunnel` DaemonSet & `istio-cni`
-- `istio-ingressgateway` on `ambient-cluster1`
-- `ambient-demo` namespace with Ambient mode enabled
 
-### Step 4: Deploy Workloads
-```bash
-# Cluster 1: Deploy httpbin and Gateway
+# Step 4: Deploy Workloads
 kubectl --context kind-ambient-cluster1 apply -f workload/httpbin.yaml
 kubectl --context kind-ambient-cluster1 apply -f workload/istio-ingress.yaml
-
-# Cluster 2: Deploy client
 kubectl --context kind-ambient-cluster2 apply -f workload/client-cluster2.yaml
-```
 
-### Step 5: Verify Cross-Cluster Connectivity
-```bash
+# Step 5: Verify Cross-Cluster Traffic
 ./verify-cross-cluster.sh
 ```
 
@@ -148,38 +145,22 @@ kubectl --context kind-ambient-cluster2 apply -f workload/client-cluster2.yaml
 
 ### 1. Test Cross-Cluster HTTP Call
 
-Find the ingress gateway IP:
 ```bash
+# Retrieve Cluster 1 LoadBalancer IP
 INGRESS_IP=$(kubectl --context kind-ambient-cluster1 -n istio-system get svc istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Ingress IP: $INGRESS_IP"
-```
 
-Execute a request from `ambient-cluster2`:
-```bash
+# Call httpbin from Cluster 2
 kubectl --context kind-ambient-cluster2 -n ambient-demo exec deploy/sleep -- curl -s "http://${INGRESS_IP}/headers"
 ```
 
-Expected Output:
-```json
-{
-  "headers": {
-    "Accept": "*/*",
-    "Host": "172.18.255.200",
-    "User-Agent": "curl/8.5.0"
-  }
-}
-```
+### 2. Inspect Istio Ambient Data Plane (`ztunnel`)
 
-### 2. Inspect Istio Ambient Data Plane (ztunnel)
-
-Verify that `ztunnel` pods are running on all nodes:
 ```bash
+# Check ztunnel DaemonSet pods
 kubectl --context kind-ambient-cluster1 -n istio-system get pods -l app=ztunnel
 kubectl --context kind-ambient-cluster2 -n istio-system get pods -l app=ztunnel
-```
 
-Check ztunnel connection logs:
-```bash
+# View ztunnel access and mTLS telemetry logs
 kubectl --context kind-ambient-cluster1 -n istio-system logs -l app=ztunnel --tail=20
 ```
 
@@ -187,8 +168,7 @@ kubectl --context kind-ambient-cluster1 -n istio-system logs -l app=ztunnel --ta
 
 ## 🧹 Teardown
 
-To delete all Kind clusters and clean up resources:
-
 ```bash
+cd microclusters
 ./teardown-all.sh
 ```
